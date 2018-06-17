@@ -3,6 +3,8 @@ import logo from './logo.svg';
 import * as 'd3' from 'd3';
 import './App.css';
 
+var async = require('async');
+
 class App extends Component {
   render() {
     return (
