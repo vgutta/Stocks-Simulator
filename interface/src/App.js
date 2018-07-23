@@ -16,40 +16,7 @@ class App extends Component {
       currentMLScatterData: [],
       currentMLScatterColor: [],
       randStock: '',
-      stocks: [
-        ['Apple Inc.','AAPL'],
-        ['Pandora','P'],
-        ['Microsoft','MSFT'],
-        ['Alphabet','GOOGL'],
-        ['IBM','IBM'],
-        ['Intel','INTC'],
-        ['Cisco Systems','CSCO'],
-        ['Oracle','ORCL'],
-        ['Facebook','FB'],
-        ['Zynga','ZNGA'],
-        ['HP','HPQ'],
-        ['Walmart','WMT'],
-        ['Tesla','TSLA'],
-        ['Amazon','AMZN'],
-        ['ExxonMobil','XOM'],
-        ['Goldman Sachs','GS'],
-        ['JPMorgan Chase','JPM'],
-        ['Twitter', 'TWTR'],
-        ['Salesforce','CRM'],
-        ["Macy's", 'M'],
-        ['Advanced Auto Parts Inc.','AAP'],
-        ['Marathon Oil','MRO'],
-        ['Kroger','KR'],
-        ['Foot Locker','FL'],
-        ['Target','TGT'],
-        ['Bed Bath & Beyond','BBBY'],
-        ['AutoZone','AZO'],
-        ['Under Armour','UAA'],
-        ['Mattel', 'MAT'],
-        ["Kohl's",'KSS'],
-        ['Schlumberger','SLB'],
-        ['TripAdvisor','TRIP']
-      ],
+      stocks,
       gettingNewStock: false,
       userStockJSX: [],
       userStockData: {
@@ -135,7 +102,100 @@ class App extends Component {
     }
   }
 
+  handleResize () {
+    var currentData = this.state.currentData.slice();
+    var data = this.state.data.slice();
+    var currentUserScatterData = this.state.currentUserScatterData.slice();
+    var currentUserScatterColor = this.state.currentUserScatterColor.slice();
+    var currentMLScatterData = this.state.currentMLScatterData.slice();
+    var currentMLScatterColor = this.state.currentMLScatterColor.slice();
+    if (currentData.length > 0 && currentData.length === data.length) {
+      this.setState({ resizing: true });
+      this.plotGraph(
+        data,
+        currentData,
+        currentUserScatterData,
+        currentUserScatterColor,
+        currentMLScatterData,
+        currentMLScatterColor
+      );
+    }
+  }
+
+  handleSlider(event) {
+    this.setState({ sliderVal: event.target.value });
+  }
   
+  getNewStock() {
+    var data = [];
+    var randStock;
+    var stocks = this.state.stocks.slice();
+    var userStockData = this.state.userStockData;
+    var mlStockData = this.state.mlStockData;
+    async.series([
+      callback => {
+        randStock = stocks[Math.floor(Math.random() * stocks.length)];
+        console.log(randStock);
+        fetch("/getstockdata/?stock=" + randStock[1], {
+          method: "get"
+        })
+          .then(function(res) {
+            return res.json();
+          })
+          .then(function(response) {
+            data = JSON.parse(response).data;
+            callback();
+          });
+      },
+      callback => {
+        userStockData.finalStockValue = parseFloat(
+          data[data.length - 1].EOD * userStockData.currentStocks
+        );
+        this.setState({
+          data: data,
+          randStock: randStock,
+          currentData: [],
+          currentUserScatterData: [],
+          currentUserScatterColor: [],
+          currentMLScatterData: [],
+          currentMLScatterColor: [],
+          gettingNewStock: false,
+          userStockData: userStockData,
+          mlStockData: mlStockData
+        });
+        this.plotTimer();
+        callback();
+      }
+    ]);
+  }
+
+  handleStart() {
+    if (document.getElementById("start-btn").classList.contains("btn-active")) {
+      document.getElementById("start-btn").style.backgroundColor =
+        "rgb(142, 142, 142)";
+      document.getElementById("start-btn").classList.toggle("btn-active");
+      var currentData = this.state.currentData.slice();
+      var data = this.state.data.slice();
+      var userStockData = this.state.userStockData;
+      var mlStockData = this.state.mlStockData;
+      if (currentData.length === data.length) {
+        userStockData.currentStocks = userStockData.initialStocks;
+        userStockData.currentBuys = userStockData.initialBuys;
+        userStockData.currentSells = userStockData.initialSells;
+        userStockData.bank = 0;
+        mlStockData.currentStocks = mlStockData.initialStocks;
+        mlStockData.currentBuys = mlStockData.initialBuys;
+        mlStockData.currentSells = mlStockData.initialSells;
+        mlStockData.bank = 0;
+        this.setState({
+          gettingNewStock: true,
+          userStockData: userStockData,
+          mlStockData: mlStockData
+        });
+        this.getNewStock();
+      }
+    }
+  }
 }
 
 export default App;
